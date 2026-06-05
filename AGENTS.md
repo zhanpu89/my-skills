@@ -2,56 +2,41 @@
 
 ## What this is
 
-A monorepo of 14 OpenCode AI **skills** that collectively implement a software engineering pipeline. Each skill is an instruction set (not executable code) that guides an AI agent through a specific phase of software development.
+A monorepo of 8 OpenCode AI **skills** that guide an AI agent through software development phases. Each skill is an instruction set (not executable code).
 
-## Pipeline architecture
+## Skills
 
-```
-prd-writer → system-architect → task-decomposer → code-developer → code-reviewer → tester → devops-engineer → doc-writer
-                ↑                    ↑                ↑               |              |
-           review-expert         review-expert    review-expert    bug-fixer    review-expert
-                                                                      ↓
-                                                                 code-reviewer (re-review)
-```
-
-- **review-expert**: document quality gate (PRD → arch → detailed design → test cases). Loop-fix mode auto-invokes upstream skills to fix P0 problems (max 3 rounds).
-- **bug-fixer**: code quality gate. Fixes bugs reported by tester, then triggers code-reviewer re-review.
+| Skill | Role | Documents |
+|-------|------|-----------|
+| prd-writer | 需求分析 → PRD | `doc/prd/` |
+| review-expert | 文档/用例评审 | `doc/review/` |
+| system-architect | 架构设计 (SAD) | `doc/arch/` |
+| task-decomposer | 详设拆分 + 项目规则 | `doc/detailed/` |
+| code-reviewer | 代码评审 | `doc/review/` |
+| tester | 测试用例 + 测试代码 | `doc/tester/` |
+| dba-designer | 数据库 DDL 设计 | `doc/db/` |
+| ai-memory | AI 记忆持久化 | — |
 
 ## Skill directory layout
 
 ```
 {skill-name}/
-├── SKILL.md          # Main instructions (YAML front-matter + workflow)
+├── SKILL.md          # YAML front-matter + workflow
 ├── resources/        # Reference docs (glossary, patterns, checklists)
 └── templates/        # Output templates
 ```
 
-Every `SKILL.md` has YAML front-matter with exactly 5 fields: `name`, `description`, `inputs`, `outputs`, `allowed-tools`. Description always includes "适用场景:" and "不适用场景（勿触发）:" bullet lists.
-
-## Document artifact paths
-
-| Path | Owner | Content |
-|------|-------|---------|
-| `doc/prd/` | prd-writer | Product requirements |
-| `doc/arch/` | system-architect | Architecture (SAD) |
-| `doc/detailed/` | task-decomposer | Detailed design per module |
-| `doc/detailed/项目规则.md` | task-decomposer | Project rules (LC-*, BR-*, ER-*) |
-| `src/` | code-developer | Source code |
-| `doc/review/` | review-expert / code-reviewer | Review reports |
-| `doc/tester/` | tester | Test cases & reports |
-| `doc/fix/` | bug-fixer | Bug fix reports |
-| `doc/db/` | dba-designer | DDL scripts |
-| `deploy/` | devops-engineer | Deployment configs |
+Every `SKILL.md` has 5 front-matter fields: `name`, `description`, `inputs`, `outputs`, `allowed-tools`. Description includes "适用场景:" and "不适用场景（勿触发）:" bullet lists.
 
 ## Key conventions
 
-- **LC-001**: Primary backend language (Java/Python/Go/Node.js). Must exist in `项目规则.md` before code generation.
-- **LC-FE-001**: Frontend framework (Vue3/React/无).
-- **P0/P1/P2**: Problem severity. P0 blocks everything, P1 is high risk, P2 is suggestion.
-- **Status emojis**: `🟡 草稿` → `🟢 已确认` (document lifecycle).
-- **Single-item pacing**: Generate one module at a time, pause for user "继续" before next. Exceptions only if user explicitly says "全部自动生成".
-- **Checklist-driven**: Every output has a pre-write checklist. All items must pass before writing.
-- **Progress files**: `_PROGRESS.md` tracks multi-module progress across skill sessions.
+- **LC-001**: Primary backend language (Java/Python/Go/Node.js)
+- **LC-FE-001**: Frontend framework (Vue3/React/无)
+- **P0/P1/P2**: Problem severity. P0 blocks everything.
+- **Status emojis**: `🟡 草稿` → `🟢 已确认`
+- **Single-item pacing**: One module at a time, pause for "继续"
+- **Checklist-driven**: Pre-write checklist on every output
+- **Progress files**: `_PROGRESS.md` tracks multi-module progress
 
 ## Memory protocol (required)
 
@@ -61,18 +46,6 @@ From `.workspace/project_rules.md`:
 - Record decisions immediately with `add_decision`
 - Search history with `search_summaries` / `search_summaries_fts` before repeating work
 - Before each response, emit `<memory_plan>{...}</memory_plan>` with planned memory operations
-
-## Optimization in progress (source of truth: `.optimization-plan.md`)
-
-Some skills still use **old structure** that is in the process of being migrated:
-- `references/` → should be `resources/`
-- `assets/` → should be `templates/`
-- `evals/` → should be removed (eval content merged elsewhere)
-- Target: max 6 files per skill (SKILL.md + resources/* + templates/*)
-
-Current state: first 7 skills already have glossary.md and updated front-matter. Remaining 6 (devops-engineer, bug-fixer, tester, prd-writer, doc-writer, code-archaeologist) still in old layout or pending optimization.
-
-**Do not trigger the optimization plan unless user explicitly asks to continue optimization work. The plan is a reference, not an active task.**
 
 ## SKILL.md 优化方法论（两原则）
 
@@ -117,7 +90,3 @@ Current state: first 7 skills already have glossary.md and updated front-matter.
 - [ ] 无死引用（指向已删除或重命名文件的引用）
 - [ ] 无内容重复（同一份数据定义只出现在一个文件）
 - [ ] 合并原则中有分拆说明（原文件名 + 行数 + 理由）
-
-## Testing & validation
-
-There are no tests, linter configs, or build scripts in this repo. This is an instruction-only repository. Validation is done by loading a skill and checking if OpenCode triggers it correctly.
